@@ -1,0 +1,27 @@
+name: Deploy Frontend
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: docker build -t eddranca/frontend-test -f Dockerfile.dev .
+      - run: docker run -e CI=true eddranca/frontend-test  npm test
+ 
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+ 
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+          application_name: docker-learn
+          environment_name: Dockerlearn-env
+          existing_bucket_name: elasticbeanstalk-eu-central-1-681919286903
+          region: eu-central-1
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
